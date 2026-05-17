@@ -1,0 +1,16 @@
+{
+  "name": "etoro-ux-feedback",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Render-hosted feedback webhook + dashboard for the UX Writing Agent Figma plugin. Free tier: web service + database.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "pg": "^8.13.0"
+  }
+}

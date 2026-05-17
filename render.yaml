@@ -1,0 +1,23 @@
+# Render Blueprint — provisions everything in one click.
+# When you connect Render to the GitHub repo, Render reads this file and
+# creates both the web service and the database for you, wires them
+# together, and prompts only for the FEEDBACK_READ_TOKEN value.
+
+services:
+  - type: web
+    name: etoro-ux-feedback
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: etoro-ux-feedback-db
+          property: connectionString
+      - key: FEEDBACK_READ_TOKEN
+        sync: false
+
+databases:
+  - name: etoro-ux-feedback-db
+    plan: free
