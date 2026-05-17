@@ -162,6 +162,21 @@ app.get("/api/feedback", async (req, res) => {
   }
 });
 
+// DELETE every event in the table. Token-gated. Used by the dashboard's
+// "Clear all" button to wipe test data before the real pilot starts.
+app.delete("/api/feedback", async (req, res) => {
+  if (!READ_TOKEN || req.query.token !== READ_TOKEN) {
+    return res.status(403).json({ ok: false, error: "forbidden" });
+  }
+  try {
+    const result = await pool.query("DELETE FROM events");
+    res.status(200).json({ ok: true, deleted: result.rowCount });
+  } catch (err) {
+    console.error("[db] delete failed:", err.message);
+    res.status(500).json({ ok: false, error: "db delete failed" });
+  }
+});
+
 app.get("/api/feedback/image/:id", async (req, res) => {
   if (!READ_TOKEN || req.query.token !== READ_TOKEN) {
     return res.status(403).send("forbidden");
@@ -182,12 +197,12 @@ app.get("/api/feedback/image/:id", async (req, res) => {
   }
 });
 
-// Static dashboard. Express serves anything in public/ at the root, plus a
-// dedicated /feedback route that returns the index file directly so users
-// don't need to type /feedback/.
+// Static dashboard. Express serves anything in public/ at the root. The
+// explicit redirect ensures /feedback (no trailing slash) goes to
+// /feedback/ which express.static then serves from index.html.
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/feedback", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "feedback", "index.html"));
+  res.redirect(301, "/feedback/");
 });
 
 app.get("/", (req, res) => {
