@@ -202,6 +202,7 @@
       <div class="spacer"></div>
       <span class="meta" id="totalLabel"></span>
       <button id="exportBtn">Export CSV</button>
+      <button id="clearBtn" title="Wipe all stored events" style="color:#ef4444; border-color:#ef4444;">Clear all</button>
       <button id="signOutBtn" title="Forget token on this device">Sign out</button>
     </div>
 
@@ -275,6 +276,7 @@
   document.getElementById("rangeSel").addEventListener("change", render);
   document.getElementById("typeSel").addEventListener("change", render);
   document.getElementById("exportBtn").addEventListener("click", exportCsv);
+  document.getElementById("clearBtn").addEventListener("click", clearAll);
   document.getElementById("closeModal").addEventListener("click", function () {
     document.getElementById("imgModal").classList.remove("show");
   });
@@ -486,6 +488,28 @@
     var img = document.getElementById("modalImg");
     img.src = "/api/feedback/image/" + encodeURIComponent(id) + "?token=" + encodeURIComponent(token);
     modal.classList.add("show");
+  }
+
+  function clearAll() {
+    var msg =
+      "Delete ALL " + events.length + " events from the database?\n\n" +
+      "This cannot be undone. If you wanted to keep a copy, click Export CSV first.";
+    if (!confirm(msg)) return;
+    fetch("/api/feedback?token=" + encodeURIComponent(token), {
+      method: "DELETE",
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        alert("Deleted " + (data.deleted || 0) + " events.");
+        events = [];
+        load();
+      })
+      .catch(function (err) {
+        alert("Couldn't clear: " + err.message);
+      });
   }
 
   function exportCsv() {
