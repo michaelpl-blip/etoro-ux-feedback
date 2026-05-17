@@ -201,6 +201,7 @@
       </select>
       <div class="spacer"></div>
       <span class="meta" id="totalLabel"></span>
+      <button id="formResponsesBtn" title="Open Microsoft Forms responses in a new tab" hidden>Form responses ↗</button>
       <button id="exportBtn">Export CSV</button>
       <button id="clearBtn" title="Wipe all stored events" style="color:#ef4444; border-color:#ef4444;">Clear all</button>
       <button id="signOutBtn" title="Forget token on this device">Sign out</button>
@@ -241,6 +242,13 @@
 <script>
 (function () {
   var TOKEN_KEY = "uxwa-feedback-token";
+  // FORM_RESPONSES_URL — paste the URL of your Microsoft Forms "Responses"
+  // tab here (Forms editor → top tab "Responses" → copy the page URL). When
+  // set, a "Form responses ↗" button appears in the toolbar so you can jump
+  // to the long-form weekly feedback from this dashboard in one click.
+  // Leave empty to hide the button.
+  var FORM_RESPONSES_URL = "https://forms.office.com/Pages/DesignPageV2.aspx?origin=NeoPortalPage&subpage=design&id=8ri3hLkAhkiA0kKWMWx4KVddZfUKvhBPlHpWd5CEp-5UNzg1Q1VCNVFSRjU4M0Q1UUVSODgyN1kyVy4u&analysis=true";
+
   var page = document.getElementById("page");
   var login = document.getElementById("login");
   var token = localStorage.getItem(TOKEN_KEY) || "";
@@ -277,6 +285,17 @@
   document.getElementById("typeSel").addEventListener("change", render);
   document.getElementById("exportBtn").addEventListener("click", exportCsv);
   document.getElementById("clearBtn").addEventListener("click", clearAll);
+
+  // Surface the Microsoft Forms responses button if a URL is configured —
+  // gives Michael one-click access to both feedback destinations so he
+  // doesn't have to remember to check Forms separately each week.
+  if (FORM_RESPONSES_URL) {
+    var formBtn = document.getElementById("formResponsesBtn");
+    formBtn.hidden = false;
+    formBtn.addEventListener("click", function () {
+      window.open(FORM_RESPONSES_URL, "_blank", "noopener,noreferrer");
+    });
+  }
   document.getElementById("closeModal").addEventListener("click", function () {
     document.getElementById("imgModal").classList.remove("show");
   });
