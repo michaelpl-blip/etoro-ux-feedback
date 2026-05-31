@@ -59,7 +59,12 @@ async function ensureSchema() {
     await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS current_text TEXT;`);
     await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS suggestion TEXT;`);
     await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS rule_id TEXT;`);
+    // user_name + user_id: pulled from figma.currentUser on the plugin side
+    // and sent with every event. Lets the dashboard attribute and filter by PM.
+    await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS user_name TEXT;`);
+    await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS user_id TEXT;`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_events_received_at ON events (received_at DESC);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_events_user_id ON events (user_id);`);
     console.log("[db] schema ready");
   } catch (err) {
     console.error("[db] schema init failed:", err.message);
@@ -98,8 +103,8 @@ app.post("/api/feedback", async (req, res) => {
         (id, event_type, rating, comment, score, run_type, screens_reviewed,
          findings_count, finding_id, layer_id, layer_name, screen_name,
          category, summary, scope, image_base64, layer_box, current_text,
-         suggestion, rule_id, raw_payload)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+         suggestion, rule_id, user_name, user_id, raw_payload)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
       [
         id,
         body.eventType || null,
@@ -121,6 +126,8 @@ app.post("/api/feedback", async (req, res) => {
         body.currentText || null,
         body.suggestion || null,
         body.ruleId || null,
+        body.userName || null,
+        body.userId || null,
         body,
       ]
     );
@@ -142,6 +149,7 @@ app.get("/api/feedback", async (req, res) => {
               screens_reviewed, findings_count, finding_id, layer_id,
               layer_name, screen_name, category, summary, scope,
               current_text, suggestion, rule_id, layer_box,
+              user_name, user_id,
               (image_base64 IS NOT NULL) AS has_image
          FROM events
          ORDER BY received_at DESC
@@ -169,6 +177,8 @@ app.get("/api/feedback", async (req, res) => {
       suggestion: r.suggestion,
       ruleId: r.rule_id,
       layerBox: r.layer_box,
+      userName: r.user_name,
+      userId: r.user_id,
       hasImage: r.has_image,
     }));
     res.status(200).json({ ok: true, count: events.length, events });
