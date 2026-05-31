@@ -536,6 +536,7 @@
           '</div>';
       }
       var meta = [];
+      if (ev.userName) meta.push("by " + ev.userName);
       if (ev.screenName) meta.push(ev.screenName);
       if (ev.scope) meta.push("scope: " + ev.scope);
       if (ev.comment) meta.push("“" + ev.comment + "”");
@@ -653,7 +654,7 @@
     var rows = filtered();
     if (!rows.length) return;
     var cols = [
-      "receivedAt", "eventType", "rating", "comment", "score",
+      "receivedAt", "userName", "userId", "eventType", "rating", "comment", "score",
       "runType", "screensReviewed", "findingsCount",
       "category", "summary", "screenName", "layerName", "scope",
       "findingId", "layerId", "id",
