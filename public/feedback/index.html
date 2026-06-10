@@ -120,7 +120,7 @@
     }
     .event .type.rating { background: rgba(13,153,255,0.15); color: var(--blue); }
     .event .type.rating-comment { background: rgba(139,92,246,0.15); color: var(--purple); }
-    .event .type.apply, .event .type.apply-grouped, .event .type.apply-structure, .event .type.mark-reviewed {
+    .event .type.apply, .event .type.apply-grouped, .event .type.apply-structure, .event .type.mark-reviewed, .event .type.post-comment {
       background: rgba(34,201,122,0.15); color: var(--green);
     }
     .event .type.dismiss, .event .type.dismiss-grouped, .event .type.dismiss-finding, .event .type.reject-rewrite {
@@ -379,7 +379,7 @@
       if (cutoff && ts < cutoff) return false;
       var t = ev.eventType || "";
       if (typeFilter === "rating") return t === "rating" || t === "rating-comment";
-      if (typeFilter === "apply") return /^(apply|mark-reviewed)/.test(t);
+      if (typeFilter === "apply") return /^(apply|mark-reviewed|post-comment)/.test(t);
       if (typeFilter === "dismiss") return /^(dismiss|reject)/.test(t);
       if (typeFilter === "comment") return !!ev.comment;
       if (typeFilter === "session") return t === "session-feedback";
@@ -407,7 +407,7 @@
       byType[t] = (byType[t] || 0) + 1;
       if (t === "rating" && ev.rating === "up") ups++;
       if (t === "rating" && ev.rating === "down") downs++;
-      if (/^(apply|mark-reviewed)/.test(t)) applies++;
+      if (/^(apply|mark-reviewed|post-comment)/.test(t)) applies++;
       if (/^(dismiss|reject)/.test(t)) dismisses++;
       if (t === "session-feedback" && typeof ev.score === "number") sessionScores.push(ev.score);
     }
@@ -448,7 +448,7 @@
     var html = entries.map(function (e) {
       var pct = max ? (e[1] / max) * 100 : 0;
       var rowClass = "";
-      if (/^apply|mark-reviewed/.test(e[0])) rowClass = "apply";
+      if (/^apply|mark-reviewed|post-comment/.test(e[0])) rowClass = "apply";
       if (/^dismiss|reject/.test(e[0])) rowClass = "down";
       return (
         '<div class="bar-row ' + rowClass + '">' +
@@ -515,6 +515,7 @@
       var label = t;
       if (t === "rating") label = ev.rating === "up" ? "👍 rating" : (ev.rating === "down" ? "👎 rating" : "rating");
       if (t === "rating-comment") label = (ev.rating === "up" ? "👍" : "👎") + " comment";
+      if (t === "post-comment") label = "accept (comment)";
       var summary = "";
       if (t === "session-feedback") {
         summary = "Session score: " + (ev.score || "—") + "/5" +
