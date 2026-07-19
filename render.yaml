@@ -1,7 +1,8 @@
-# Render Blueprint — provisions everything in one click.
-# When you connect Render to the GitHub repo, Render reads this file and
-# creates both the web service and the database for you, wires them
-# together, and prompts only for the FEEDBACK_READ_TOKEN value.
+# Render Blueprint — provisions the web service only.
+# DATABASE_URL is set manually in the Render dashboard (points at Neon, our
+# permanent free Postgres) — render.yaml intentionally doesn't manage it,
+# because the prior `fromDatabase` link to a Render-hosted free Postgres
+# expired after 30 days. Neon is free forever.
 
 services:
   - type: web
@@ -12,12 +13,15 @@ services:
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: etoro-ux-feedback-db
-          property: connectionString
+        sync: false
       - key: FEEDBACK_READ_TOKEN
         sync: false
-
-databases:
-  - name: etoro-ux-feedback-db
-    plan: free
+      # ANTHROPIC_API_KEY — the etoro pilot key. Set manually in the Render
+      # dashboard; the /api/claude proxy uses it to call Anthropic server-to-
+      # server. Never commit the value (this file is in the public mirror).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # PROXY_TOKEN — shared secret the plugin sends as the x-proxy-token
+      # header. Must match CLAUDE_PROXY_TOKEN in ui.html. Set in dashboard.
+      - key: PROXY_TOKEN
+        sync: false

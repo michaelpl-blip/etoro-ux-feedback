@@ -78,7 +78,7 @@ ensureSchema();
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "content-type");
+  res.setHeader("Access-Control-Allow-Headers", "content-type, x-proxy-token");
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(204).end();
   next();
@@ -220,6 +220,61 @@ app.get("/api/feedback/image/:id", async (req, res) => {
     res.status(200).send(buf);
   } catch (err) {
     res.status(500).send("db query failed");
+  }
+});
+
+// ── Claude API proxy ──────────────────────────────────────────────────
+// The plugin can't call Anthropic directly from the browser: etoro's
+// Anthropic organization has a data-retention arrangement, and Anthropic
+// automatically refuses browser (CORS) requests for such orgs. Anthropic's
+// own prescribed fix is a backend proxy, which is what this route is. It
+// relays the plugin's request to Anthropic server-to-server, injecting the
+// API key (kept ONLY as a Render env var — it is never shipped to the
+// plugin or to PMs). To respect the org's no-retention posture, this route
+// deliberately does NOT log or store the prompt or the response — it only
+// passes them through.
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
+const PROXY_TOKEN = process.env.PROXY_TOKEN || "";
+
+app.post("/api/claude", async (req, res) => {
+  // Lightweight shared-secret gate. The token ships inside the published
+  // plugin, so it is not a true secret from an etoro employee — its only
+  // job is to stop random internet traffic from discovering the endpoint
+  // and burning the pilot's Anthropic spend cap.
+  if (!PROXY_TOKEN || req.get("x-proxy-token") !== PROXY_TOKEN) {
+    return res.status(403).json({ type: "error", error: { type: "forbidden", message: "bad or missing proxy token" } });
+  }
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ type: "error", error: { type: "config_error", message: "ANTHROPIC_API_KEY is not set on the server" } });
+  }
+  let body = req.body;
+  if (typeof body === "string") {
+    try { body = body ? JSON.parse(body) : {}; }
+    catch (_) { return res.status(400).json({ type: "error", error: { type: "invalid_request_error", message: "invalid JSON" } }); }
+  }
+  if (!body || typeof body !== "object") {
+    return res.status(400).json({ type: "error", error: { type: "invalid_request_error", message: "missing request body" } });
+  }
+  try {
+    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
+      },
+      body: JSON.stringify(body),
+    });
+    // Pass Anthropic's status + body straight back. The plugin's callClaude
+    // already knows how to read both the success and the error shapes.
+    const text = await upstream.text();
+    res.status(upstream.status);
+    res.setHeader("content-type", upstream.headers.get("content-type") || "application/json");
+    res.send(text);
+  } catch (err) {
+    console.error("[claude-proxy] upstream fetch failed:", err.message);
+    res.status(502).json({ type: "error", error: { type: "api_error", message: "proxy could not reach Anthropic: " + err.message } });
   }
 });
 
